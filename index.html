@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>המחשת Pipeline - נתונים בצבעים שונים</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700;800&display=swap');
+
+        body {
+            font-family: 'Assistant', sans-serif;
+            background: linear-gradient(135deg, #1a1c29 0%, #2b3252 100%);
+            margin: 0;
+            padding: 20px;
+            color: #fff;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: #222738;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 2px solid #3f4c6b;
+        }
+        h1 {
+            text-align: center;
+            color: #00ffcc;
+            margin-bottom: 5px;
+            font-size: 2.4em;
+            text-shadow: 0 0 10px rgba(0,255,204,0.3);
+        }
+        .subtitle {
+            text-align: center;
+            color: #a0aec0;
+            margin-bottom: 30px;
+            font-size: 1.2em;
+        }
+
+        .simulation-area {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .track-box {
+            background: #1e2230;
+            border: 2px solid #2f374d;
+            border-radius: 14px;
+            padding: 20px;
+            position: relative;
+        }
+
+        .track-title {
+            font-weight: 700;
+            font-size: 1.3em;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .track-without { border-right: 6px solid #ff4757; }
+        .track-with { border-right: 6px solid #2ed573; }
+
+        .pipeline-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .entrance-queue {
+            background: #141722;
+            border: 2px dashed #3f4c6b;
+            border-radius: 12px;
+            padding: 10px;
+            min-width: 140px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            min-height: 95px;
+        }
+
+        .entrance-label {
+            font-size: 0.8em;
+            color: #a0aec0;
+            font-weight: 700;
+        }
+
+        .queue-items {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .pipe-container {
+            display: flex;
+            flex: 1;
+            background: #141722;
+            border: 3px solid #3f4c6b;
+            border-radius: 14px;
+            padding: 10px;
+            gap: 8px;
+            flex-direction: row-reverse;
+            justify-content: space-between;
+        }
+
+        .pipe-container.monolith-pipe {
+            border-color: #ff4757;
+            background: rgba(255, 71, 87, 0.05);
+            justify-content: center;
+            align-items: center;
+            min-height: 95px;
+            flex-direction: column;
+        }
+
+        .pipe-stage {
+            flex: 1;
+            background: #1e2230;
+            border: 2px solid #2f374d;
+            border-radius: 10px;
+            padding: 12px 6px;
+            text-align: center;
+            min-height: 95px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        .pipe-stage.active {
+            border-color: #00ffcc;
+            background: rgba(0, 255, 204, 0.08);
+            box-shadow: 0 0 15px rgba(0,255,204,0.2);
+        }
+
+        .stage-name {
+            font-size: 0.85em;
+            font-weight: 700;
+            color: #cbd5e0;
+        }
+
+        .stage-slot {
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        /* הגדרת צבעים ייחודיים לכל Data */
+        .data-item {
+            color: white;
+            padding: 5px 10px;
+            border-radius: 8px;
+            font-size: 0.85em;
+            font-weight: 700;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            animation: popIn 0.3s ease;
+            white-space: nowrap;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* data1 - טורקיז / ירוק-מים */
+        .data-1 { background: linear-gradient(135deg, #00b09b 0%, #96c93d 100%); }
+        /* data2 - כתום זרחני */
+        .data-2 { background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%); color: #1a1c29; border-color: #ffe600; }
+        /* data3 - סגול עמוק */
+        .data-3 { background: linear-gradient(135deg, #8e2de2 0%, #4a00e0 100%); }
+        /* data4 - ורוד / מג'נטה */
+        .data-4 { background: linear-gradient(135deg, #ff0844 0%, #ffb199 100%); }
+
+        .data-item.done {
+            filter: brightness(1.2);
+            box-shadow: 0 0 15px rgba(46, 213, 115, 0.6);
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0.4); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .metrics-bar {
+            display: flex;
+            justify-content: space-around;
+            background: #141722;
+            border: 2px solid #3f4c6b;
+            padding: 15px;
+            border-radius: 12px;
+            font-weight: 700;
+            color: #00ffcc;
+            font-size: 1.1em;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 12px 25px;
+            font-size: 1.1em;
+            font-weight: 700;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.1s, background 0.2s;
+            font-family: 'Assistant', sans-serif;
+        }
+        .btn:active { transform: scale(0.96); }
+        .btn-primary { background-color: #3b82f6; color: white; box-shadow: 0 4px 15px rgba(59,130,246,0.4); }
+        .btn-primary:hover { background-color: #2563eb; }
+        .btn-step { background-color: #f59e0b; color: white; box-shadow: 0 4px 15px rgba(245,158,11,0.4); }
+        .btn-step:hover { background-color: #d97706; }
+        .btn-secondary { background-color: #374151; color: #d1d5db; }
+        .btn-secondary:hover { background-color: #4b5563; }
+
+        .explanation-footer {
+            margin-top: 15px;
+            background: #141722;
+            border-right: 4px solid #00ffcc;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 1.1em;
+            line-height: 1.6;
+            color: #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🚀 השוואת צינורות נתונים (Pipeline)</h1>
+    <div class="subtitle">השוואה בין עבודה טורית לעבודה בצינור (Pipeline)</div>
+
+    <div class="simulation-area">
+        
+        <!-- צינור 1: בלי Pipeline -->
+        <div class="track-box track-without">
+            <div class="track-title">
+                <span>🛑 צינור 1: בלי Pipeline (פקק תנועה / מעבד בודד)</span>
+                <span id="timeWithout" style="color: #ff4757;">זמן: 0 שניות</span>
+            </div>
+            
+            <div class="pipeline-row">
+                <div class="entrance-queue">
+                    <span class="entrance-label">📥 כניסה (ימין):</span>
+                    <div class="queue-items" id="queueWithout">
+                        <span class="data-item data-1">data1</span>
+                        <span class="data-item data-2">data2</span>
+                        <span class="data-item data-3">data3</span>
+                        <span class="data-item data-4">data4</span>
+                    </div>
+                </div>
+
+                <div class="pipe-container monolith-pipe">
+                    <div id="monolithDisplay" style="font-size: 1.05em; font-weight: 700; color: #f87171; text-align: center;">
+                        🎮 לחץ על "צעד קדימה" כדי להפעיל את הצינורות...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- צינור 2: עם Pipeline -->
+        <div class="track-box track-with">
+            <div class="track-title">
+                <span>⚡ צינור 2: עם Pipeline (מחולק ל-4 תחנות זורמות)</span>
+                <span id="timeWith" style="color: #2ed573;">זמן: 0 שניות</span>
+            </div>
+
+            <div class="pipeline-row">
+                <div class="entrance-queue">
+                    <span class="entrance-label">📥 כניסה (ימין):</span>
+                    <div class="queue-items" id="queueWith">
+                        <span class="data-item data-1">data1</span>
+                        <span class="data-item data-2">data2</span>
+                        <span class="data-item data-3">data3</span>
+                        <span class="data-item data-4">data4</span>
+                    </div>
+                </div>
+
+                <div class="pipe-container">
+                    <div class="pipe-stage" id="stage-3">
+                        <span class="stage-name">💾 4. שמירה</span>
+                        <div class="stage-slot" id="slot-3"></div>
+                    </div>
+                    <div class="pipe-stage" id="stage-2">
+                        <span class="stage-name">🎨 3. קידוד</span>
+                        <div class="stage-slot" id="slot-2"></div>
+                    </div>
+                    <div class="pipe-stage" id="stage-1">
+                        <span class="stage-name">🧮 2. עיבוד</span>
+                        <div class="stage-slot" id="slot-1"></div>
+                    </div>
+                    <div class="pipe-stage" id="stage-0">
+                        <span class="stage-name">🧹 1. ניקוי</span>
+                        <div class="stage-slot" id="slot-0"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- מדדים -->
+        <div class="metrics-bar">
+            <div id="statusText">🎮 סטטוס: לחץ על "צעד קדימה" להתחלה</div>
+            <div id="speedupText">⚡ חיסכון בזמן: -</div>
+        </div>
+
+        <!-- כפתורי בקרה -->
+        <div class="controls">
+            <button class="btn btn-secondary" onclick="resetSim()">🔄 איפוס מחדש</button>
+            <button class="btn btn-step" id="stepBtn" onclick="nextStep()">⏩ צעד קדימה (+1 שניה)</button>
+            <button class="btn btn-primary" id="autoBtn" onclick="toggleAutoPlay()">▶ הפעלה אוטומטית</button>
+        </div>
+
+        <div class="explanation-footer" id="explanationFooter">
+            <b>💡 טיפ מעקב:</b> ראו איך בצינור התחתון כל הנתונים נכנסים זה אחר זה וזורמים במקביל בין התחנות, לעומת הצינור העליון שבו כל נתון צריך לחכות בתור עד שהקודם מסיים לגמרי!
+        </div>
+
+    </div>
+</div>
+
+<script>
+    let step = 0;
+    let autoTimer = null;
+    let isPlaying = false;
+    const maxSteps = 16;
+
+    function resetSim() {
+        if (autoTimer) clearInterval(autoTimer);
+        isPlaying = false;
+        step = 0;
+        document.getElementById('autoBtn').innerText = "▶ הפעלה אוטומטית";
+        document.getElementById('stepBtn').disabled = false;
+        updateDisplay();
+    }
+
+    function nextStep() {
+        if (step >= maxSteps) return;
+        step++;
+        updateDisplay();
+
+        if (step >= maxSteps) {
+            if (autoTimer) clearInterval(autoTimer);
+            isPlaying = false;
+            document.getElementById('autoBtn').innerText = "▶ הפעלה אוטומטית";
+            document.getElementById('stepBtn').disabled = true;
+            document.getElementById('statusText').innerText = "🏆 סטטוס: ההרצה הסתיימה בהצלחה!";
+            document.getElementById('speedupText').innerText = "🔥 חיסכון של מעל 55% בזמן הכולל!";
+        }
+    }
+
+    function toggleAutoPlay() {
+        if (isPlaying) {
+            clearInterval(autoTimer);
+            isPlaying = false;
+            document.getElementById('autoBtn').innerText = "▶ הפעלה אוטומטית";
+        } else {
+            if (step >= maxSteps) resetSim();
+            isPlaying = true;
+            document.getElementById('autoBtn').innerText = "⏸ השהה";
+            autoTimer = setInterval(() => {
+                if (step < maxSteps) {
+                    nextStep();
+                } else {
+                    clearInterval(autoTimer);
+                    isPlaying = false;
+                    document.getElementById('autoBtn').innerText = "▶ הפעלה אוטומטית";
+                }
+            }, 1000);
+        }
+    }
+
+    function updateDisplay() {
+        let monolithItem = Math.floor(Math.max(0, step - 1) / 4) + 1;
+        let monolithSubStep = ((step - 1) % 4) + 1;
+
+        // עדכון הצינור העליון (בלי פייפליין)
+        if (step === 0) {
+            document.getElementById('monolithDisplay').innerHTML = "🎮 לחץ על 'צעד קדימה' כדי להתחיל את הסימולציה...";
+            document.getElementById('timeWithout').innerText = "זמן: 0 שניות";
+            document.getElementById('queueWithout').innerHTML = `
+                <span class="data-item data-1">data1</span>
+                <span class="data-item data-2">data2</span>
+                <span class="data-item data-3">data3</span>
+                <span class="data-item data-4">data4</span>
+            `;
+        } else if (monolithItem <= 4) {
+            document.getElementById('monolithDisplay').innerHTML = 
+                `⚙️ מעבד כעת: <span class="data-item data-${monolithItem}">data${monolithItem}</span> (שלב ${monolithSubStep}/4)`;
+            
+            let waitingHtml = "";
+            for (let w = monolithItem + 1; w <= 4; w++) {
+                waitingHtml += `<span class="data-item data-${w}" style="opacity: 0.6;">data${w}</span>`;
+            }
+            document.getElementById('queueWithout').innerHTML = waitingHtml || "<span style='color: #2ed573; font-size:0.85em;'>✅ התור התרוקן</span>";
+            document.getElementById('timeWithout').innerText = `זמן: ${step} שניות`;
+        } else {
+            document.getElementById('monolithDisplay').innerHTML = "<span style='color:#2ed573;'>🎉 הכל סיים!</span>";
+            document.getElementById('queueWithout').innerHTML = "<span style='color: #2ed573; font-size:0.85em;'>✅ התור התרוקן</span>";
+        }
+
+        // עדכון הצינור התחתון (עם פייפליין)
+        let itemsInStages = ['', '', '', ''];
+        let activeStages = [false, false, false, false];
+
+        for (let p = 1; p <= 4; p++) {
+            let stageIdx = step - p;
+            if (stageIdx >= 0 && stageIdx < 4) {
+                let cssClass = (stageIdx === 3) ? `data-item data-${p} done` : `data-item data-${p}`;
+                itemsInStages[stageIdx] += `<span class="${cssClass}">data${p}</span> `;
+                activeStages[stageIdx] = true;
+            }
+        }
+
+        for (let i = 0; i < 4; i++) {
+            document.getElementById(`slot-${i}`).innerHTML = itemsInStages[i] || "";
+            if (activeStages[i]) {
+                document.getElementById(`stage-${i}`).classList.add('active');
+            } else {
+                document.getElementById(`stage-${i}`).classList.remove('active');
+            }
+        }
+
+        // תור הכניסה של הפייפליין מימין
+        let queueWithHtml = "";
+        for (let p = 1; p <= 4; p++) {
+            let stageIdx = step - p;
+            if (stageIdx < 0) {
+                queueWithHtml += `<span class="data-item data-${p}">data${p}</span>`;
+            }
+        }
+        document.getElementById('queueWith').innerHTML = queueWithHtml || "<span style='color: #2ed573; font-size:0.85em;'>⚡ כולם בתוך הצינור!</span>";
+
+        let timeWithPipeline = Math.min(step, 7);
+        document.getElementById('timeWith').innerText = `זמן: ${timeWithPipeline} שניות`;
+
+        if (step > 0 && step <= 7) {
+            document.getElementById('statusText').innerText = `🕹️ סטטוס: צעד ${step} מתוך 16`;
+        } else if (step === 0) {
+            document.getElementById('statusText').innerText = `🎮 סטטוס: לחץ על "צעד קדימה" להתחלה`;
+        }
+    }
+</script>
+
+</body>
+</html>
